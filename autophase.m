@@ -19,15 +19,14 @@ function [ data, phase, offset, deviation ] = autophase(varargin)
 % offset:     the 0th order polynomial 
 % deviation:  the deviation of the imaginary part from 0th order polynomial, normalized
 %
+VERSION = '1.0';
+
 p = inputParser;
 p.addRequired('data', @(x)validateattributes(x,{'numeric'},{'vector'}));
 p.addParamValue('units', 'rad', @(x)ischar(validatestring(x,{'rad', 'deg'})));
 p.addParamValue('rot180', false, @(x)validateattributes(x,{'logical'},{'scalar'}));
 p.FunctionName = 'autophase';
 p.parse(varargin{:});
-
-VERSION = '0.8';
-fprintf('\nautophase v%s\n', VERSION);
 
 % function for phase correction: Minimize signal intensity in imag. channel:
 % Multiply data with phase angle:                     data*exp(i*x(1))
