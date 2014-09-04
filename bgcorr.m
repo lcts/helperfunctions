@@ -26,6 +26,7 @@ function [specs bgs params background] = bgcorr(data, varargin)
 % bgs        - an array of the backgrounds used [xdata firstbg secondbg]
 % params     - the coefficients used for background corrections for use in polyval
 % background - the background indices
+VERSION = '1.0';
 
 %% ARGUMENT PARSING
 % Check number of arguments and set defaults
