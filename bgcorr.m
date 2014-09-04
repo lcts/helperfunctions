@@ -73,9 +73,9 @@ specs(:,1) = data(:,1);
 bgs(:,1)   = data(:,1);
 
 % initial background correction
-params(:,1) = polyfit(data([background(1):background(2) background(3):background(4)],1), ...
+params.bg1 = polyfit(data([background(1):background(2) background(3):background(4)],1), ...
                       data([background(1):background(2) background(3):background(4)],2), p.Results.order(1));
-bgs(:,2) = polyval(params(:,1), bgs(:,1));
+bgs(:,2)   = polyval(params.bg1, bgs(:,1));
 specs(:,2) = data(:,2) - bgs(:,2);
 
 % first integration step
@@ -84,9 +84,9 @@ if p.Results.integrate > 0
     % if there is a second value in 'order'
     if length(p.Results.order) >= 2
         % perform second bg correction before second integration
-        params(:,2) = polyfit(specs([background(1):background(2) background(3):background(4)],1), ...
-                              specs([background(1):background(2) background(3):background(4)],2),p.Results.order(2));
-        bgs(:,3) = polyval(params(:,2),bgs(:,1));
+        params.bg2 = polyfit(specs([background(1):background(2) background(3):background(4)],1), ...
+                              specs([background(1):background(2) background(3):background(4)],2), p.Results.order(2));
+        bgs(:,3)   = polyval(params.bg2, bgs(:,1));
         specs(:,3) = specs(:,3) - bgs(:,3);
         % then integrate
     end
