@@ -12,8 +12,8 @@ function [ data ] = sym(varargin)
 %           is ignored
 % invpoint: the point around which data is symmetrised. Requires axis to be
 %           passed to the script as well.
-% axis:     a vector of axis values for the dimension along which the array
-%           should be symmetrised.
+% axis:     the axis vector of of the dimension along which the array
+%           should be symmetrised. Has to be ordered.
 %
 % invpoint and axis:
 % If invpoint and axis are passed to the function, the script will first
@@ -30,7 +30,7 @@ p = inputParser;
 p.addRequired('data', @(x)validateattributes(x,{'numeric'},{'2d'}));
 p.addOptional('dim', 1, @(x)validateattributes(x,{'numeric'},{'scalar'}));
 p.addOptional('invpoint', false, @(x)validateattributes(x,{'numeric'},{'scalar'}));
-p.addOptional('axis', false, @(x)validateattributes(x,{'numeric'},{'vector'}));
+p.addOptional('axis', false, @(x)validateattributes(x,{'numeric'},{'2d'}));
 
 p.FunctionName = 'sym';
 p.parse(varargin{:});
@@ -49,9 +49,36 @@ if ~p.Results.invpoint
     data = (p.Results.data + flipdim(p.Results.data, dimension))/2;
 else
     if ~p.Results.axis
-        error('sym:OptErr', 'Option flippoint requires option axis');
+        error('sym:OptErr', 'Option invpoint requires option axis');
     else
-        error('sym:OptErr', 'Not yet implemented');
+        if ~issorted(p.Results.axis)
+            error('sym:OptErr', 'axis has to be ordered');
+        else
+            maxval  = min(max(p.Results.axis - p.Results.invpoint), max(-p.Results.axis + p.Results.invpoint));
+            axis = linspace(-maxval, maxval, length(p.Results.axis)) + p.Results.invpoint;
+            
+        end
     end
+end    
+
+if ~p.Results.invpoint
+    if p.Results.axis; warning('sym:OptWarn', 'invpoint not given, option axis ignored'); end
+    if isrow(p.Results.data)
+        dimension = 2;
+    elseif iscolumn(p.Results.data)
+        dimension = 1;
+    else
+        dimension = p.Results.dim;
+    end
+    data = (p.Results.data + flipdim(p.Results.data, dimension))/2;
+elseif ~p.Results.axis
+    error('sym:OptErr', 'Option invpoint requires option axis');
+elseif (isvector(p.Results.data) && ~isvector(p.Results.axis)) || ( ~isvector(p.Results.data) && isvector(p.Results.axis) )
+    error('sym:DimMismatch', 'dimensions of data and axis must match');
+elseif isrow(p.Results.data)
+    dimension = 2;
+elseif iscolumn(p.Results.data)
+    dimension = 1;
+else
+    dimension = p.Results.dim;
 end
-        
