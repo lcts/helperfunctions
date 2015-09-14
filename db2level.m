@@ -10,7 +10,7 @@ function level = db2level(varargin)
 % 'reflevel' can be a string or a number, default: 1
 % 'isfield' is a logical, default: false
 %
-% If it is a number, 'isfield' can be used to switch from energy units (the
+% If 'reflevel' is a number, 'isfield' can be used to switch from energy units (the
 % default) to field units.
 % Additionally, a number of standard level types can be passed as a string:
 %   - 'energy': energy level referenced to 1

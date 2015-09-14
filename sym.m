@@ -1,13 +1,13 @@
-function [ data ] = sym(varargin)
+function [ data, axis ] = sym(varargin)
 % sym symmetrises data passed to it. By default, the data is symmetrised
 % around the center, but the symmetrisation point can also be specified.
 %
 % USAGE:
 % symdata = sym(data)
 % symdata = sym(data, dim)
-% symdata = sym(data, dim, invpoint axis)
+% [symdata, symaxis] = sym(data, dim, invpoint, axis)
 %
-% data:     a vector or 2-dimensional array tobe symmetrised
+% data:     a vector or 2-dimensional array to be symmetrised
 % dim:      the dimension along which to symmetrise. If data is a vector, dim
 %           is ignored
 % invpoint: the point around which data is symmetrised. Requires axis to be
@@ -19,13 +19,8 @@ function [ data ] = sym(varargin)
 % If invpoint and axis are passed to the function, the script will first
 % generate a new axis that has the same spacing as axis, but is symmetric
 % around invpoint. It's maxima/minima will be +-abs(min(axis(1),axis(end)))
+% For convenience, this new axis is returned as well
 %
-% VERSION 0.9: invpoint and axis not yet implemented!!
-%
-
-VERSION = '0.9';
-
-
 p = inputParser;
 p.addRequired('data', @(x)validateattributes(x,{'numeric'},{'2d'}));
 p.addOptional('dim', 1, @(x)validateattributes(x,{'numeric'},{'scalar'}));
@@ -55,7 +50,9 @@ else
             error('sym:OptErr', 'axis has to be ordered');
         else
             maxval  = min(max(p.Results.axis - p.Results.invpoint), max(-p.Results.axis + p.Results.invpoint));
-            axis = linspace(-maxval, maxval, length(p.Results.axis)) + p.Results.invpoint;
+            spacing = (max(p.Results.axis) - min(p.Results.axis)) / length(p.Results.axis);
+            npoints = 2*maxval / spacing;
+            axis = linspace(-maxval, maxval, npoints) + p.Results.invpoint;
             
         end
     end
@@ -71,14 +68,29 @@ if ~p.Results.invpoint
         dimension = p.Results.dim;
     end
     data = (p.Results.data + flipdim(p.Results.data, dimension))/2;
-elseif ~p.Results.axis
-    error('sym:OptErr', 'Option invpoint requires option axis');
-elseif (isvector(p.Results.data) && ~isvector(p.Results.axis)) || ( ~isvector(p.Results.data) && isvector(p.Results.axis) )
-    error('sym:DimMismatch', 'dimensions of data and axis must match');
-elseif isrow(p.Results.data)
-    dimension = 2;
-elseif iscolumn(p.Results.data)
-    dimension = 1;
+    axis = NaN;
 else
-    dimension = p.Results.dim;
+    if ~p.Results.axis
+        error('sym:OptErr', 'Option invpoint requires option axis');
+    elseif (isvector(p.Results.data) && ~isvector(p.Results.axis)) || ( ~isvector(p.Results.data) && isvector(p.Results.axis) )
+        error('sym:DimMismatch', 'dimensions of data and axis must match');
+    elseif isrow(p.Results.data)
+        data = interp1(p.Results.axis,p.Results.data,axis);
+        data = (data + flipdim(data, 2))/2;
+    elseif iscolumn(p.Results.data)
+        data = interp1(p.Results.axis,p.Results.data,axis);
+        data = (data + flipdim(data, 1))/2;
+    else
+        if p.Results.dim == 1
+            for ii = 1:size(p.Results.data,2)
+                data(:,ii) = interp1(p.Results.axis,p.Results.data(:,ii),axis);
+                data(:,ii) = (data(:,ii) + flipdim(data(:,ii), 1))/2;
+            end
+        else
+            for ii = 1:size(p.Results.data,1)
+                data(ii,:) = interp1(p.Results.axis,p.Results.data(ii,:),axis);
+                data(ii,:) = (data(ii,:) + flipdim(data(ii,:), 2))/2;
+            end
+        end
+    end
 end
