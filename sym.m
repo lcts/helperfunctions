@@ -12,7 +12,7 @@ function [ data, axis ] = sym(varargin)
 %           is ignored
 % invpoint: the point around which data is symmetrised. Requires axis to be
 %           passed to the script as well.
-% axis:     the axis vector of of the dimension along which the array
+% axis:     the axis vector of the dimension along which the array
 %           should be symmetrised. Has to be ordered.
 %
 % invpoint and axis:
@@ -21,11 +21,18 @@ function [ data, axis ] = sym(varargin)
 % around invpoint. It's maxima/minima will be +-abs(min(axis(1),axis(end)))
 % For convenience, this new axis is returned as well
 %
+
+%
+% flipdim() will be removed from MatLab. Replace with flip() (introduced
+% 2014a)
+%
+
+
 p = inputParser;
 p.addRequired('data', @(x)validateattributes(x,{'numeric'},{'2d'}));
 p.addOptional('dim', 1, @(x)validateattributes(x,{'numeric'},{'scalar'}));
 p.addOptional('invpoint', false, @(x)validateattributes(x,{'numeric'},{'scalar'}));
-p.addOptional('axis', false, @(x)validateattributes(x,{'numeric'},{'2d'}));
+p.addOptional('axis', false, @(x)validateattributes(x,{'numeric'},{'vector'}));
 
 p.FunctionName = 'sym';
 p.parse(varargin{:});
@@ -72,8 +79,8 @@ if ~p.Results.invpoint
 else
     if ~p.Results.axis
         error('sym:OptErr', 'Option invpoint requires option axis');
-    elseif (isvector(p.Results.data) && ~isvector(p.Results.axis)) || ( ~isvector(p.Results.data) && isvector(p.Results.axis) )
-        error('sym:DimMismatch', 'dimensions of data and axis must match');
+%    elseif (isvector(p.Results.data) && ~isvector(p.Results.axis)) || ( ~isvector(p.Results.data) && isvector(p.Results.axis) )
+%        error('sym:DimMismatch', 'dimensions of data and axis must match');
     elseif isrow(p.Results.data)
         data = interp1(p.Results.axis,p.Results.data,axis);
         data = (data + flipdim(data, 2))/2;
