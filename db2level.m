@@ -2,9 +2,9 @@ function level = db2level(varargin)
 % converts dB into level
 %
 % USAGE:
-% dB = level2db(level)
-% dB = level2db(level,reflevel)
-% dB = level2db(level,reflevel,isfield)
+% level = db2level(dB)
+% level = db2level(dB,reflevel)
+% level = db2level(dB,reflevel,isfield)
 %
 % 'level' can be scalar, vector or matrix. 'dB' has the same dimensions as 'level'
 % 'reflevel' can be a string or a number, default: 1
@@ -21,7 +21,7 @@ function level = db2level(varargin)
 
 % set up input parsing
 p = inputParser;
-p.addRequired('db', @(x)validateattributes(x,{'numeric'},{'scalar'}));
+p.addRequired('db', @(x)validateattributes(x,{'numeric'},{'2d'}));
 p.addOptional('reflevel',1,@(x) (isnumeric(x) && isscalar(x)) || ischar(x));
 p.addOptional('isfield',false, @islogical);
 p.FunctionName = 'db2level';
@@ -67,4 +67,4 @@ else
 end
 
 % calculate factor
-level = reflevel * 10^(p.db/unitfactor);
+level = reflevel * 10.^(p.db/unitfactor);
