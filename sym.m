@@ -22,20 +22,18 @@ function [ data, axis ] = sym(varargin)
 % For convenience, this new axis is returned as well
 %
 
-%
-% flipdim() will be removed from MatLab. Replace with flip() (introduced
-% 2014a)
-%
-
-
 p = inputParser;
 p.addRequired('data', @(x)validateattributes(x,{'numeric'},{'2d'}));
-p.addOptional('dim', 1, @(x)validateattributes(x,{'numeric'},{'scalar','>=',1,'<=',2}));
+p.addOptional('dim', 1, @isnumeric);
 p.addOptional('invpoint', false, @(x)validateattributes(x,{'numeric'},{'scalar'}));
 p.addOptional('axis', false, @(x)validateattributes(x,{'numeric'},{'vector'}));
 
 p.FunctionName = 'sym';
 p.parse(varargin{:});
+
+if ~(isempty(p.Results.dim) || isscalar(p.Results.dim))
+    error('sym:OptErr', '''dim'' has to be scalar or empty.')
+end
 
 if isrow(p.Results.data)
     dimension = 2;
@@ -45,32 +43,32 @@ else
     dimension = p.Results.dim;
 end
 
-if ~p.Results.invpoint && ~p.Results.axis
+if ~p.Results.invpoint
     data = (p.Results.data + flipdim(p.Results.data, dimension))/2;
     axis = NaN;
 else
-    if ~p.Results.invpoint || ~p.Results.axis
-        error('sym:OptErr', 'Specify both axis and invpoint or neither.');
+    if ~p.Results.axis
+        error('sym:OptErr', 'Option ''invpoint'' requires ''axis''.');
+    elseif size(p.Results.axis) ~= size(p.Results.data,dimension)
+        error('sym:OptErr', '''axis'' has to have the same length as ''data'' along ''dim''.');
     else
         maxval  = min(max(p.Results.axis - p.Results.invpoint), max(-p.Results.axis + p.Results.invpoint));
-        spacing = (max(p.Results.axis) - min(p.Results.axis)) / length(p.Results.axis);
-        npoints = 2*maxval / spacing;
+        spacing = (max(p.Results.axis) - min(p.Results.axis)) / (length(p.Results.axis) - 1);
+        npoints = (2 * maxval + 1) / spacing;
         axis = linspace(-maxval, maxval, npoints) + p.Results.invpoint;
+        if dimension == 1
+            axis = axis';
+        end
     end
-    if isvector(p.Results.data)
-        data = interp1(p.Results.axis,p.Results.data,axis);
-        data = (data + flipdim(data, dimension))/2;
+    if dimension == 1
+        for ii = 1:size(p.Results.data,2)
+            data(:,ii) = interp1(p.Results.axis,p.Results.data(:,ii),axis);
+            data(:,ii) = (data(:,ii) + flipdim(data(:,ii), 1))/2;
+        end
     else
-        if p.Results.dim == 1
-            for ii = 1:size(p.Results.data,2)
-                data(:,ii) = interp1(p.Results.axis,p.Results.data(:,ii),axis);
-                data(:,ii) = (data(:,ii) + flipdim(data(:,ii), 1))/2;
-            end
-        else
-            for ii = 1:size(p.Results.data,1)
-                data(ii,:) = interp1(p.Results.axis,p.Results.data(ii,:),axis);
-                data(ii,:) = (data(ii,:) + flipdim(data(ii,:), 2))/2;
-            end
+        for ii = 1:size(p.Results.data,1)
+            data(ii,:) = interp1(p.Results.axis,p.Results.data(ii,:),axis);
+            data(ii,:) = (data(ii,:) + flipdim(data(ii,:), 2))/2;
         end
     end
 end
