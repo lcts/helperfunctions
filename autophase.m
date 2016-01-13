@@ -19,7 +19,6 @@ function [ data, phase, offset, deviation ] = autophase(varargin)
 % offset:     the 0th order polynomial 
 % deviation:  the deviation of the imaginary part from 0th order polynomial, normalized
 %
-VERSION = '1.0';
 
 p = inputParser;
 p.addRequired('data', @(x)validateattributes(x,{'numeric'},{'vector'}));
@@ -29,16 +28,15 @@ p.FunctionName = 'autophase';
 p.parse(varargin{:});
 
 
-datatemp = real(p.Results.data) - mean(real(p.Results.data)) + 1i*(imag(p.Results.data) - mean(imag(p.Results.data)));
-datatemp = datatemp/max(abs(datatemp));
+data_norm = real(p.Results.data) - mean(real(p.Results.data)) + 1i*(imag(p.Results.data) - mean(imag(p.Results.data)));
+data_norm = data_norm/max(abs(data_norm));
 % function for phase correction: Minimize signal intensity in imag. channel:
 % Multiply data with phase angle:                     data*exp(i*x(1))
 % take the imaginary part and 0-order bg correct it:  imag(...) - x(2)
 % square it element-wise:                             (...).^2
 % and sum over the resulting vector:                  sum(...)
 % Define that as a function of phi:                   f = @(phi)...
-%f = @(x)sum((imag(p.Results.data * exp(1i*x(1))) - x(2)).^2);
-f = @(x)sum((imag(datatemp * exp(1i*x(1))) - x(2)).^2);
+f = @(x)sum((imag(data_norm * exp(1i*x(1))) - x(2)).^2);
 
 % find the minimum deviation from zero 
 [ phase, deviation ] = fminsearch(f, [0 0 0]);
@@ -56,4 +54,4 @@ if xor(trapz(real(data)) < 0, p.Results.rot180)
 end
 
 deviation = sqrt(deviation)/(length(data)*max(abs(data)));
-if p.Results.units == 'deg'; phase = phase/pi*180; end
+if strcmp(p.Results.units,'deg'); phase = phase/pi*180; end
