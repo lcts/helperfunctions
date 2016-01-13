@@ -28,26 +28,30 @@ p.addParamValue('rot180', false, @(x)validateattributes(x,{'logical'},{'scalar'}
 p.FunctionName = 'autophase';
 p.parse(varargin{:});
 
+
+datatemp = real(p.Results.data) - mean(real(p.Results.data)) + 1i*(imag(p.Results.data) - mean(imag(p.Results.data)));
+datatemp = datatemp/max(abs(datatemp));
 % function for phase correction: Minimize signal intensity in imag. channel:
 % Multiply data with phase angle:                     data*exp(i*x(1))
 % take the imaginary part and 0-order bg correct it:  imag(...) - x(2)
 % square it element-wise:                             (...).^2
 % and sum over the resulting vector:                  sum(...)
 % Define that as a function of phi:                   f = @(phi)...
-f = @(x)sum((imag(p.Results.data * exp(i*x(1))) - x(2)).^2);
+%f = @(x)sum((imag(p.Results.data * exp(1i*x(1))) - x(2)).^2);
+f = @(x)sum((imag(datatemp * exp(1i*x(1))) - x(2)).^2);
 
 % find the minimum deviation from zero 
-[ phase, deviation ] = fminsearch(f, [0 0]);
+[ phase, deviation ] = fminsearch(f, [0 0 0]);
 % save values and correct phases
 offset = phase(2);
 phase  = phase(1);
-data   = p.Results.data * exp(i*phase);
+data   = p.Results.data * exp(1i*phase);
 
 % rotate 180° if necessary
 % rotation not necessary when neither (rotate 0°) or both (rotate 360°) rot180 and
 % trapz(real(data)) < 0 are true
 if xor(trapz(real(data)) < 0, p.Results.rot180)
-  data  = data * exp(i*pi);
+  data  = data * exp(1i*pi);
   phase = phase + pi;
 end
 
