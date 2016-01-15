@@ -92,8 +92,6 @@ refy = y + refy - snaprange - 1;
 refval = cmap(refy,refx);
 refmap = (abs(cmap - bgcmean) > crange) .* (abs(cmap - refval) < crange);
 
-keyboard
-
 % initialise graph search
 y = refy;
 data = double.empty(2,0);
@@ -183,3 +181,18 @@ end
 
 % display the detected line
 line('XData',data(1,:),'YData',data(2,:),'Color','b','LineWidth',1.5, 'Parent', hImageAxes)
+
+% origin of image is top/left, origin of a graph is bottom/left, fix that
+data(2,:) = -data(2,:) + limits(2) + limits(4);
+% then plot the result
+close(findobj('type','figure','name','DataFigure'))
+hDataFigure = figure('name','DataFigure');
+hDataAxes = axes('Parent',hDataFigure);
+xlabel(hDataAxes, 'x coordinate / pixel');
+ylabel(hDataAxes, 'y coordinate / pixel');
+axis(hDataAxes,[limits(1), limits(1)+limits(3), 0, limits(4)]);
+line('XData',data(1,:),'YData',data(2,:),'LineWidth',1.5, 'Parent', hDataAxes)
+
+
+
+
