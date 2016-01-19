@@ -47,11 +47,11 @@ data   = p.Results.data * exp(1i*phase);
 
 % rotate 180° if necessary
 % rotation not necessary when neither (rotate 0°) or both (rotate 360°) rot180 and
-% trapz(real(data)) < 0 are true
-if xor(trapz(real(data)) < 0, p.Results.rot180)
+% abs(max(integral(real))) < abs(min(integral(real))) are true
+if xor(abs(max(cumtrapz(real(data)))) < abs(min(cumtrapz(real(data)))), p.Results.rot180)
   data  = data * exp(1i*pi);
   phase = phase + pi;
 end
 
-deviation = sqrt(deviation)/(length(data)*max(abs(data)));
+deviation = sqrt(deviation) / (length(data)*max(abs(data)));
 if strcmp(p.Results.units,'deg'); phase = phase/pi*180; end
