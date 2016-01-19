@@ -13,8 +13,6 @@ function factor = endoreff(varargin)
 % ydata:   the pulse shape
 % fwhm:    the full width at half maximum of the pulse
 %
-VERSION = '0.9';
-
 p = inputParser;
 p.addRequired('coupling', @(x)validateattributes(x,{'numeric'},{'vector', 'real'}));
 p.addRequired('tau', @(x)validateattributes(x,{'numeric'},{'scalar', 'real'}));

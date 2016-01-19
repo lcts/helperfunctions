@@ -23,6 +23,7 @@ p.parse(varargin{:});
 nelem = length(p.Results.value);
 
 % find index of element in vector closest to value
+index = zeros(1, nelem);
 for ii = 1:nelem
     [~, index(ii)] = min(abs(p.Results.vector - p.Results.value(ii)));
 end

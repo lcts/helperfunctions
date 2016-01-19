@@ -1,4 +1,4 @@
-function [specs bgs params background] = bgcorr(data, varargin)
+function [specs, bgs, params, background] = bgcorr(data, varargin)
 % Calculate the double integral of a spectrum.
 %
 % Syntax
@@ -31,9 +31,9 @@ function [specs bgs params background] = bgcorr(data, varargin)
 % Check number of arguments and set defaults
 p = inputParser;
 p.addRequired('data', @(x)validateattributes(x,{'numeric'},{'2d','real'}));
-p.addParamValue('background',false, @(x)validateattributes(x,{'numeric'},{'positive','size',[1,4],'integer'}));
-p.addParamValue('order',[3 3], @(x)validateattributes(x,{'numeric'},{'positive' 'row','integer'}));
-p.addParamValue('integrate',0, @(x)validateattributes(x,{'numeric'},{'positive','scalar','integer','<=',2}));
+p.addParameter('background',false, @(x)validateattributes(x,{'numeric'},{'positive','size',[1,4],'integer'}));
+p.addParameter('order',[3 3], @(x)validateattributes(x,{'numeric'},{'positive' 'row','integer'}));
+p.addParameter('integrate',0, @(x)validateattributes(x,{'numeric'},{'positive','scalar','integer','<=',2}));
 p.FunctionName = 'bgcorr';
 p.parse(data,varargin{:});
 
@@ -62,7 +62,7 @@ else
 end
 
 if length(p.Results.order) > 2
-   message = ['order has too many elements. A maximum of two background correction steps are supported.'];
+   message = 'order has too many elements. A maximum of two background correction steps are supported.';
    error('bgcorr:BackgroundSteps', message);   
 end
 

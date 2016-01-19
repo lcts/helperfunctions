@@ -1,4 +1,4 @@
-function [noiselvl, noiserms, localstd] = LocalNoise(data, area)
+function [noiselvl, noiserms, localstd] = localnoise(data, area)
 % LocalNoise calculates the local noise level by looking for minima in local
 % standard deviations (flat areas of the graph).
 %
@@ -16,8 +16,6 @@ function [noiselvl, noiserms, localstd] = LocalNoise(data, area)
 % the first and last <area> points of localstd are set to the value of the first
 % and last calculated points
 %
-VERSION = '1.0';
-
 p = inputParser;
 p.addRequired('data', @(x)validateattributes(x,{'numeric'},{'vector','real'}));
 p.addOptional('area',ceil(length(data)*0.025), @(x)validateattributes(x,{'numeric'},{'nonnegative','scalar','integer'}));

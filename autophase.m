@@ -22,8 +22,8 @@ function [ data, phase, offset, deviation ] = autophase(varargin)
 
 p = inputParser;
 p.addRequired('data', @(x)validateattributes(x,{'numeric'},{'vector'}));
-p.addParamValue('units', 'rad', @(x)ischar(validatestring(x,{'rad', 'deg'})));
-p.addParamValue('rot180', false, @(x)validateattributes(x,{'logical'},{'scalar'}));
+p.addParameter('units', 'rad', @(x)ischar(validatestring(x,{'rad', 'deg'})));
+p.addParameter('rot180', false, @(x)validateattributes(x,{'logical'},{'scalar'}));
 p.FunctionName = 'autophase';
 p.parse(varargin{:});
 

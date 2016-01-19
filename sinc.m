@@ -13,8 +13,6 @@ function [ ydata, fwhm ] = sinc(varargin)
 % ydata:   the pulse shape
 % fwhm:    the full width at half maximum of the pulse
 %
-VERSION = '0.9';
-
 p = inputParser;
 p.addRequired('xdata', @(x)validateattributes(x,{'numeric'},{'vector', 'real'}));
 p.addRequired('width', @(x)validateattributes(x,{'numeric'},{'scalar', 'real'}));

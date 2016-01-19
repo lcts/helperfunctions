@@ -2,10 +2,10 @@ function [ data ] = digitize(varargin)
 
 p = inputParser;
 p.addRequired('imatrix', @(x)validateattributes(x,{'numeric'},{'3d'}));
-p.addParamValue('mode', 'precise', @(x)ischar(validatestring(x,{'quick', 'precise'})));
-p.addParamValue('yrange', 0.05, @(x)validateattributes(x,{'numeric'},{'scalar','<=',1,'>=',0}));
-p.addParamValue('crange', 0.05, @(x)validateattributes(x,{'numeric'},{'scalar','<=',1,'>=',0}));
-p.addParamValue('snaprange', 0.01, @(x)validateattributes(x,{'numeric'},{'scalar','<=',1,'>=',0}));
+p.addParameter('mode', 'precise', @(x)ischar(validatestring(x,{'quick', 'precise'})));
+p.addParameter('yrange', 0.05, @(x)validateattributes(x,{'numeric'},{'scalar','<=',1,'>=',0}));
+p.addParameter('crange', 0.05, @(x)validateattributes(x,{'numeric'},{'scalar','<=',1,'>=',0}));
+p.addParameter('snaprange', 0.01, @(x)validateattributes(x,{'numeric'},{'scalar','<=',1,'>=',0}));
 
 p.FunctionName = 'digitize';
 p.parse(varargin{:});
