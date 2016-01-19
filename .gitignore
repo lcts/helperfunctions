@@ -1,4 +1,4 @@
-*.m~
-loadspec.m
+*~
+digitize2.m
 peakdet.m
 testfiles
