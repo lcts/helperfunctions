@@ -1,97 +1,186 @@
-function [specs, bgs, params, background] = bgcorr(data, varargin)
-% Calculate the double integral of a spectrum.
-%
-% Syntax
-% specs = bgcorr(data)
-% specs = bgcorr(data, 'Option', Value, ...)
-% [specs bgs params background] = bgcorr(data, ...)
-%
-% Description
-% bgcorr performs polynomial background correction of data, as well as (optionally) (doubly) integrated data.
-%
-% Parameters & Options
-% data       - 2-dimensional array of the data (data(x,y))
-% 
-% background - vector of indices [leftstart leftstop rightstart rightstop] delimiting the area used
-%              for background fit. Take care to include as much background as possible in your spectrum but no signal.
-%              If this parameter is not given, DoubleInt will use the left and right 25% of the data as background.
-% order      - a vector the orders of the polynomials for background correction. The number of elements determines the number
-%              of correction steps (1 or 2). Default [3 3].
-% integrate  - number of integration steps, 0-2, default 0
-%
-% Output
-% specs      - an array of the corrected data [xdata ydata firstint secondint]
-%
-% Additional Outputs
-% bgs        - an array of the backgrounds used [xdata firstbg secondbg]
-% params     - the coefficients used for background corrections for use in polyval
-% background - the background indices
+function [dataout, bgout] = bgcorr(x, y, varargin)
+
+
+%% - TODO -------------------%
+%                            %
+% - Background indices       %
+% - rescale data to order 1  %
+% - 2D fit using matrix      %
+%----------------------------%
+
 
 %% ARGUMENT PARSING
 % Check number of arguments and set defaults
 p = inputParser;
-p.addRequired('data', @(x)validateattributes(x,{'numeric'},{'2d','real'}));
-p.addParameter('background',false, @(x)validateattributes(x,{'numeric'},{'positive','size',[1,4],'integer'}));
-p.addParameter('order',[3 3], @(x)validateattributes(x,{'numeric'},{'positive' 'row','integer'}));
-p.addParameter('integrate',0, @(x)validateattributes(x,{'numeric'},{'positive','scalar','integer','<=',2}));
+p.addRequired('x', @(x)validateattributes(x,{'numeric'},{'vector','real'}));
+p.addRequired('y', @(x)validateattributes(x,{'numeric'},{'vector','real'}));
+p.addOptional('z', false, @(x)validateattributes(x,{'numeric'},{'2D','real'}));
+p.addParameter('order', 1, @(x)validateattributes(x,{'numeric'},{'nonnegative','integer','vector'}));
+p.addParameter('background',false, @(x)validateattributes(x,{'numeric'},{'positive','size',[1,4],'integer','increasing'}));
+p.addParameter('method','mldivide', @(x)ischar(validatestring(x,{'mldivide', 'polyfit', 'fit'})));
 p.FunctionName = 'bgcorr';
-p.parse(data,varargin{:});
+p.parse(x,y,varargin{:});
 
-if ~p.Results.background  
-  % use the default '25% from start/stop' as background.
-  background(1) = 1;
-  background(2) = background(1)+ceil(length(data(:,1))*0.25);
-  background(4) = length(data(:,1));
-  background(3) = background(4)-ceil(length(data(:,1))*0.25);
+% save data dimensions
+sizex = size(x);
+lenx  = length(x);
+sizey = size(y);
+leny  = length(y);
+z = p.Results.z;
+sizez = size(z);
+lenz  = max(sizez);
+% save min/max values
+xmin = min(x);
+xrange = max(x) - min(x);
+ymin = min(y);
+yrange = max(y) - min(y);
+zmin = min(z);
+zrange = max(max(z)) - min(min(z));
+
+
+% check if we have a z-axis or not
+if islogical(z)
+    % check arguments for 1D corrections
+    
+    % check background
+    if ~p.Results.background
+        % use the default '25% from start/stop' as background.
+        background(1) = 1;
+        background(2) = background(1)+ceil(length(x)*0.25);
+        background(4) = length(x);
+        background(3) = background(4)-ceil(length(x)*0.25);
+    elseif p.Results.background <= length(x)
+        background = p.Results.background;
+    else
+        error('MATLAB:bgcorr:parseError',['x has length ', num2str(length(x)), ...
+            ', but indices', num2str(p.Results.background), ' were requested.'])
+    end
+    
+    % check order
+    if length(order) ~= 1
+        error('MATLAB:bgcorr:parseError','''order'' should have one element but has %i.', length(order))
+    end
+    if order > 9
+        error('MATLAB:bgcorr:orderError','''order'' must be < 10 for 1D correction.')
+    end
+    
+    % check x,y
+    if lenx ~= leny
+        error('MATLAB:bgcorr:dimagree','Dimensions of input matrices must agree.')
+    end
+    if isrow(x); x = x'; end
+    if isrow(y); x = y'; end
+    
+    % check model
+    if strcmp(which(p.Results.model),'')
+        error('MATLAB:bgcorr:invalidMethod','Unknown function %s. You might be lacking a toolbox.', ...
+            p.Results.model)
+    else
+        model = p.Results.model;
+    end
 else
-  background = p.Results.background;
-  BGINVALID = false;
-  if background(4) > length(data(:,1))
-    background(4) = length(data(:,1));
-    BGINVALID = true;
-  end
-  for i = 3:-1:1
-    if background(i) > background(i+1)
-      background(i) = background(i+1);
-      BGINVALID = true;
+    % check arguments for 2D corrections
+    
+    % check background
+    if ~p.Results.background
+        % use the default '25% from start/stop' as background.
+        background(1) = 1;
+        background(2) = background(1)+ceil(length(x)*0.25);
+        background(4) = length(x);
+        background(3) = background(4)-ceil(length(x)*0.25);
+    elseif p.Results.background <= length(x)
+        background = p.Results.background;
+    else
+        error('MATLAB:bgcorr:parseError',['x has length ', num2str(length(x)), ...
+            ', but indices', num2str(p.Results.background), ' were requested.'])
     end
-  end
-  if BGINVALID
-    warning('bgcorr:BGInvalid','Invalid background. Set to [%i %i %i %i].\n\n', background(1), background(2),background(3),background(4));
-  end
+    
+    % check order
+    if length(order) ~= 2
+        error('MATLAB:bgcorr:parseError','''order'' should have one element but has %i.', length(order))
+    end
+    if max(order) > 5
+        error('MATLAB:bgcorr:orderError','''order'' must be < 6 for 2D correction.')
+    end
+    
+    % check x,y,z
+    if (isvector(z) && lenx ~= lenz) || ...
+            (min(sizez) > 1 && (sizez(1) ~= lenx || sizez(2) ~= leny))
+        error('MATLAB:bgcorr:dimagree','Dimensions of input matrices must agree.')
+    end
+    if isrow(x); x = x'; end
+    if isrow(y); x = y'; end
+    if isrow(z); x = z'; end
+    
+    % check model
+    if strcmp(which(p.Results.model),'')
+        error('MATLAB:bgcorr:invalidMethod','Unknown function %s. You might be lacking a toolbox.', ...
+            p.Results.model)
+    elseif strcmp(p.Results.model,'polyfit')
+        error('MATLAB:bgcorr:invalidMethod','Invalid method ''%s'' for 2D datasets.', p.Results.model)
+    else
+        model = p.Results.model;
+    end
 end
 
-if length(p.Results.order) > 2
-   message = 'order has too many elements. A maximum of two background correction steps are supported.';
-   error('bgcorr:BackgroundSteps', message);   
-end
-
-
-%% INTEGRATE SPECTRUM
-% save x-axis for integrated specs and backgrounds
-specs(:,1) = data(:,1);
-bgs(:,1)   = data(:,1);
-
-% initial background correction
-params.bg1 = polyfit(data([background(1):background(2) background(3):background(4)],1), ...
-                      data([background(1):background(2) background(3):background(4)],2), p.Results.order(1));
-bgs(:,2)   = polyval(params.bg1, bgs(:,1));
-specs(:,2) = data(:,2) - bgs(:,2);
-
-% first integration step
-if p.Results.integrate > 0
-    specs(:,3) = cumtrapz(specs(:,1),specs(:,2));
-    % if there is a second value in 'order'
-    if length(p.Results.order) >= 2
-        % perform second bg correction before second integration
-        params.bg2 = polyfit(specs([background(1):background(2) background(3):background(4)],1), ...
-                              specs([background(1):background(2) background(3):background(4)],2), p.Results.order(2));
-        bgs(:,3)   = polyval(params.bg2, bgs(:,1));
-        specs(:,3) = specs(:,3) - bgs(:,3);
-        % then integrate
+%% PERFORM BACKGROUND CORRECTION
+if islogical(z)
+    % normalise data
+    xnorm = (x - xmin)/xrange;
+    ynorm = (y - ymin)/yrange;
+    % 1D background correction
+    switch model
+        case 'fit'
+            poly = strcat('poly',num2str(order));
+            result = fit(xnorm,ynorm,poly);
+            bgout = result(xnorm) * yrange + ymin;
+        case 'polyfit'
+            [result, ~, mu] = polyfit(xnorm,ynorm,order);
+            bgout = polyval(result,xnorm,[],mu) * yrange + ymin;
+        otherwise
+            % generate matrix for fit
+            A = zeros(length(x),order+1);
+            % go from highest order down to match polyval function
+            for ii = order:0
+                A(:,ii) = xnorm.^ii;
+            end
+            % solve the system for y
+            result = A\ynorm;
+            bgout = A*result * yrange + ymin;
     end
-    % integrate a second time if called for
-    if p.Results.integrate > 1
-        specs(:,4) = cumtrapz(specs(:,1),specs(:,3));
+    % reshape result so that it has the same dimensions as the input
+    bgout = reshape(bgout,sizey(1),sizey(2));
+    y = reshape(y,sizey(1),sizey(2));
+    dataout = y - bgout;
+else
+    % 2D background correction
+    % normalise data
+    xnorm = (x - xmin)/xrange;
+    ynorm = (y - ymin)/yrange;
+    znorm = (z - zmin)/zrange;
+    % reshape data to vectors if we've been given a matrix
+    if min(sizez) > 1
+        z = reshape(z,sizez(1)*sizez(2),1);
+        x = reshape(x * ones(1,length(y)) ,sizez(1)*sizez(2),1);
+        y = reshape(ones(length(x),1) * y',sizez(1)*sizez(2),1);
     end
+    switch model
+        case 'fit'
+            poly = strcat('poly',num2str(order(1)),num2str(order(2)));
+            result = fit([x,y],z,poly);
+            bgout = result(x,y);
+        otherwise
+            % generate matrix for fit
+            %A = zeros(length(x),order*(order+1)/2+1);
+            for ii = 0:order(1)
+                for jj = 0:order(2) - ii
+                    if order(2) < ii; break; end
+                    A(:,ii) = x.^ii.y.^jj;
+                end
+            end
+    end
+    % reshape result so that it has the same dimensions as the input
+    bgout = reshape(bgout,sizez(1),sizez(2));
+    z = reshape(z,sizez(1),sizez(2));
+    dataout = z - bgout;
 end
