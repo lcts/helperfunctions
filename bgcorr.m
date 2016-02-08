@@ -47,8 +47,20 @@ function [dataout, bgout] = bgcorr(x,y,varargin)
 % 'opts' is passed to the function. See 'help fit' for details.
 %
 
+%% INFORM USER ABOUT SYNTAX CHANGE
+% if user passed a 2xN or Nx2 array as x, they are likely using the syntax of
+% the previous bgcorr version.
+if isnumeric(x) && min(size(x)) == 2
+    message = strcat('Invalid input format. ', ...
+        '\nYou are likely using a deprecated input syntax (data passed as one Nx2 array). ', ...
+        '\n\nThe current version of bgcorr has changed it''s syntax to accomodate correction of 2d datasets.', ...
+        ' Please adjust your scripts accordingly. Type ''help bgcorr'' for the new syntax.');
+    error('MATLAB:bgcorr:deprecated', message);
+end
+
+
 %% ARGUMENT PARSING
-% Check number of arguments and set defaults
+% Perform basic validity checks and set defaults
 p = inputParser;
 p.addRequired('x', @(x)validateattributes(x,{'numeric'},{'vector','real'}));
 p.addRequired('y', @(x)validateattributes(x,{'numeric'},{'vector','real'}));
@@ -59,14 +71,15 @@ p.addParameter('method','mldivide', @(x)ischar(validatestring(x,{'mldivide', 'po
 p.FunctionName = 'bgcorr';
 parse(p,x,y,varargin{:});
 
-% save data dimensions
+% save data dimensions, because we need them often & need to restore them
+% later
 z = p.Results.z;
 sizey = size(y);
 sizez = size(z);
 numelx  = numel(x);
 numely  = numel(y);
 numelz  = numel(z);
-% save min/max values
+% save min/max values so that we can restore them after normalisation
 xmin = min(x);
 xrange = max(x) - min(x);
 ymin = min(y);
@@ -81,10 +94,11 @@ if islogical(z)
     % check order
     validateattributes(p.Results.order,{'numeric'},{'scalar','<',10},'bgcorr','order for 1d data')
    
-    % check x,y
+    % check x,y dimensions
     if numelx ~= numely
         error('MATLAB:bgcorr:dimagree','''x'' and ''y'' must be of same length.')
     end
+    % force columns
     if isrow(x); x = x'; end
     if isrow(y); x = y'; end
     
@@ -96,6 +110,7 @@ if islogical(z)
         bg(3) = xmin + 3*xrange/4;
         bg(4) = xmin + xrange;
     else
+        % error if background does not have 4 increasing elements
         validateattributes(p.Results.background,{'numeric'},{'vector','increasing','numel',4},'bgcorr','background for 1d data')
         bg = p.Results.background;
     end
@@ -112,11 +127,12 @@ else
     % check order
     validateattributes(p.Results.order,{'numeric'},{'vector','numel',2,'<',6},'bgcorr','order for 2d data')
     
-    % check x,y,z
+    % check x,y,z dimensions
     if (isvector(z) && numelx ~= numelz) || ...
             (min(sizez) > 1 && (sizez(2) ~= numelx || sizez(1) ~= numely))
         error('MATLAB:bgcorr:dimagree','Dimensions of input matrices must agree.')
     end
+    % force columns
     if isrow(x); x = x'; end
     if isrow(y); x = y'; end
     if isrow(z); x = z'; end
@@ -133,6 +149,8 @@ else
         bg(7) = ymin + 3*yrange/4;
         bg(8) = ymin + yrange;
     else
+        % error if background does not have 8 elements or if 1-4 (x) / 5-8
+        % (y) are not increasing
         validateattributes(p.Results.background,{'numeric'},{'vector','numel',8},'bgcorr','background for 2d data')
         validateattributes(p.Results.background(1:4),{'numeric'},{'vector','increasing'},'bgcorr','elements 1:4 (x) of background')
         validateattributes(p.Results.background(5:8),{'numeric'},{'vector','increasing'},'bgcorr','elements 5:8 (y) of background')
@@ -143,7 +161,7 @@ else
     if strcmp(which(p.Results.method),'')
         error('MATLAB:bgcorr:invalidMethod','Unknown function %s. You might be lacking a toolbox.', ...
             p.Results.method)
-    elseif strcmp(p.Results.method,'polyfit')
+    elseif strcmp(p.Results.method,'polyfit') % polyfit does not work for 2d data.
         error('MATLAB:bgcorr:invalidMethod','Invalid method ''%s'' for 2d data.', p.Results.method)
     else
         method = p.Results.method;
@@ -166,7 +184,7 @@ if islogical(z)
         case 'polyfit'
             [result, ~, mu] = polyfit(xnorm(indexmask),ynorm(indexmask),p.Results.order);
             bgout = polyval(result,xnorm,[],mu) * yrange + ymin;
-        otherwise
+        otherwise % mldivide is the default
             % generate matrix for fit
             Abg = zeros(length(x(indexmask)),p.Results.order+1);
             A   = zeros(length(x),p.Results.order+1);
@@ -193,7 +211,7 @@ else
     end
     % generate index mask for background region
     indexmask = (((x >= bg(1) & x <= bg(2)) | (x >= bg(3) & x <= bg(4)))) & ...
-        (((y >= bg(5) & y <= bg(6)) | (y >= bg(7) & y <= bg(8))));
+                (((y >= bg(5) & y <= bg(6)) | (y >= bg(7) & y <= bg(8))));
     % normalise data
     xnorm = (x - xmin)/xrange;
     ynorm = (y - ymin)/yrange;
@@ -203,7 +221,7 @@ else
             poly = strcat('poly',num2str(p.Results.order(1)),num2str(p.Results.order(2)));
             result = fit([xnorm(indexmask),ynorm(indexmask)],znorm(indexmask),poly);
             bgout = result(xnorm,ynorm) * zrange + zmin;
-        otherwise
+        otherwise % mldivide is the default
             % generate matrix for fit
             Abg = zeros(length(x(indexmask)), ...
                 (max(p.Results.order) + 1)*(max(p.Results.order) + 2)/2 - ...
