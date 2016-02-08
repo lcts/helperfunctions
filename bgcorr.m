@@ -1,13 +1,51 @@
 function [dataout, bgout] = bgcorr(x,y,varargin)
-
-
-%% - TODO -------------------%
-%                            %
-% - Background indices       %
-% - rescale data to order 1  %
-% - 2D fit using matrix      %
-%----------------------------%
-
+% Perform background correction
+%
+% bgcorr performs automatic background correction of 1d or 2d real data using
+% polynomial functions with user-specifiable order, background area and
+% method.
+%
+% Syntax
+% dataout = bgcorr(x,y)
+% dataout = bgcorr(x,y,z)
+% [dataout, bgout] = autophase(x,y,'order',<value>,'background',<value>,'method',<value>)
+% [dataout, bgout] = autophase(x,y,z,'order',<value>,'background',<value>,'method',<value>)
+% [dataout, bgout] = autophase(...,'method','fit','opts',<fitopts>)
+%
+% Description
+% dataout = bgcorr(x,y) returns vector y background-corrected using a
+% poynomial of default order (1) fitted to the default area (left and right
+% 25% of data)
+%
+% dataout = bgcorr(x,y,z) does the same, but for 2d data z, using order 
+% [1 1]. if z is a matrix, the data is assumed to be formatted as
+% z(n) = f(x(n),y(n)). If z is a matrix, the data is assumed to be
+% formatted as z(n,m) = f(x(n), y(m)). Default order is [1 1], and default
+% background area is the outer 25% in both dimensions.
+%
+% [dataout, bgout] = autophase(x,y,'order',<value>,'background',<value>,'method',<value>)
+% [dataout, bgout] = autophase(x,y,z,'order',<value>,'background',<value>,'method',<value>)
+% return background corrected data and the fitted background itself, using
+% order, background and method specified by the user.
+% - 'order' must be scalar and <10 for 1d and two-element and <6 for 2d data.
+%    The elements denote polynomial order in x and y direction, respectively.
+% - 'background' is formatted as [lowstart lowstop highstart highstop] for 1d
+%    and [xlstart xlstop xhstart xhstop ylstart ylstop yhstart yhstop] for 2d
+% - 'method' can be one of 'mldivide' (default), 'polyfit' (only for 1d) and 'fit'
+%   - 'mldivide' uses the Matlab-internal mldivide function and requires
+%      no toolboxes.
+%   - 'polyfit' uses the Optimization Toolbox's 'polyfit' function. Works
+%      only for 1d, but is slightly faster than 'mldivide'
+%   - 'fit' uses the Curve-Fitting Toolbox's 'fit' function. It is
+%      signifcantly slower, but allows advanced control over the fitting
+%      process
+% It is unlikely that setting this to anything other than the default will
+% gain you anything
+%
+% [dataout, bgout] = autophase(...,'method','fit','opts',<fitopts>)
+% Perform correction using the Curve-Fitting Toolbox's 'fit' function.
+% 'opts' is passed to the function. See 'help fit' for details.
+%
 
 %% ARGUMENT PARSING
 % Check number of arguments and set defaults
@@ -16,7 +54,7 @@ p.addRequired('x', @(x)validateattributes(x,{'numeric'},{'vector','real'}));
 p.addRequired('y', @(x)validateattributes(x,{'numeric'},{'vector','real'}));
 p.addOptional('z', false, @(x)validateattributes(x,{'numeric'},{'2d','real'}));
 p.addParameter('order', 1, @(x)validateattributes(x,{'numeric'},{'nonnegative','integer','vector'}));
-p.addParameter('background',false, @(x)validateattributes(x,{'numeric'},{'2d','increasing'}));
+p.addParameter('background',false, @(x)validateattributes(x,{'numeric'},{'vector'}));
 p.addParameter('method','mldivide', @(x)ischar(validatestring(x,{'mldivide', 'polyfit', 'fit'})));
 p.FunctionName = 'bgcorr';
 parse(p,x,y,varargin{:});
@@ -41,13 +79,8 @@ zrange = max(max(z)) - min(min(z));
 if islogical(z)
     % check arguments for 1D corrections
     % check order
-    if length(p.Results.order) ~= 1
-        error('MATLAB:bgcorr:parseError','''order'' must have length 1 for 1D correction.')
-    end
-    if p.Results.order > 9
-        error('MATLAB:bgcorr:orderError','''order'' must be < 10 for 1D correction.')
-    end
-    
+    validateattributes(p.Results.order,{'numeric'},{'scalar','<',10},'bgcorr','order for 1d data')
+   
     % check x,y
     if lenx ~= leny
         error('MATLAB:bgcorr:dimagree','''x'' and ''y'' must be of same length.')
@@ -62,11 +95,9 @@ if islogical(z)
         bg(2) = xmin + xrange/4;
         bg(3) = xmin + 3*xrange/4;
         bg(4) = xmin + xrange;
-    elseif size(p.Results.background) == [4 1]
-        bg = p.Results.background;
     else
-        error('MATLAB:bgcorr:parseError',['Dimension of ''background'' must be [4 1] for 1D data, but is [', ...
-            num2str(size(p.Results.background)), '].'])
+        validateattributes(p.Results.background,{'numeric'},{'vector','increasing','numel',4},'bgcorr','background for 1d data')
+        bg = p.Results.background;
     end
     
     % check method
@@ -79,12 +110,7 @@ if islogical(z)
 else
     % check arguments for 2D corrections
     % check order
-    if length(p.Results.order) ~= 2
-        error('MATLAB:bgcorr:parseError','''order'' must have length 2 for 2D correction.')
-    end
-    if max(p.Results.order) > 5
-        error('MATLAB:bgcorr:orderError','''order'' must be < 6 for 2D correction.')
-    end
+    validateattributes(p.Results.order,{'numeric'},{'vector','numel',2,'<',6},'bgcorr','order for 2d data')
     
     % check x,y,z
     if (isvector(z) && lenx ~= lenz) || ...
@@ -98,19 +124,19 @@ else
     % check background
     if ~p.Results.background
         % use the default '25% from start/stop' as background.
-        bg(1,1) = xmin;
-        bg(2,1) = xmin + xrange/4;
-        bg(3,1) = xmin + 3*xrange/4;
-        bg(4,1) = xmin + xrange;
-        bg(1,2) = ymin;
-        bg(2,2) = ymin + yrange/4;
-        bg(3,2) = ymin + 3*yrange/4;
-        bg(4,2) = ymin + yrange;
-    elseif size(p.Results.background) == [4 2]
-        bg = p.Results.background;
+        bg(1) = xmin;
+        bg(2) = xmin + xrange/4;
+        bg(3) = xmin + 3*xrange/4;
+        bg(4) = xmin + xrange;
+        bg(5) = ymin;
+        bg(6) = ymin + yrange/4;
+        bg(7) = ymin + 3*yrange/4;
+        bg(8) = ymin + yrange;
     else
-        error('MATLAB:bgcorr:parseError',['Dimension of ''background'' must be [4 2] for 2D data, but is [', ...
-            num2str(size(p.Results.background)), '].'])
+        validateattributes(p.Results.background,{'numeric'},{'vector','numel',8},'bgcorr','background for 2d data')
+        validateattributes(p.Results.background(1:4),{'numeric'},{'vector','increasing'},'bgcorr','elements 1:4 (x) of background')
+        validateattributes(p.Results.background(5:8),{'numeric'},{'vector','increasing'},'bgcorr','elements 5:8 (y) of background')
+        bg = p.Results.background;
     end
     
     % check method
@@ -118,7 +144,7 @@ else
         error('MATLAB:bgcorr:invalidMethod','Unknown function %s. You might be lacking a toolbox.', ...
             p.Results.method)
     elseif strcmp(p.Results.method,'polyfit')
-        error('MATLAB:bgcorr:invalidMethod','Invalid method ''%s'' for 2D datasets.', p.Results.method)
+        error('MATLAB:bgcorr:invalidMethod','Invalid method ''%s'' for 2d data.', p.Results.method)
     else
         method = p.Results.method;
     end
