@@ -73,6 +73,6 @@ else
 end
 
 for ii = 1:length(a)
-    coeff.(poly{kk}) = a(kk);
-    coeff.nameformat = pxorderyorder;
+    coeff.(poly{ii}) = a(ii);
+    coeff.nameformat = 'pxorderyorder';
 end
