@@ -60,12 +60,12 @@ p.FunctionName = 'bgcorr';
 parse(p,x,y,varargin{:});
 
 % save data dimensions
-lenx  = length(x);
-sizey = size(y);
-leny  = length(y);
 z = p.Results.z;
+sizey = size(y);
 sizez = size(z);
-lenz  = max(sizez);
+numelx  = numel(x);
+numely  = numel(y);
+numelz  = numel(z);
 % save min/max values
 xmin = min(x);
 xrange = max(x) - min(x);
@@ -82,7 +82,7 @@ if islogical(z)
     validateattributes(p.Results.order,{'numeric'},{'scalar','<',10},'bgcorr','order for 1d data')
    
     % check x,y
-    if lenx ~= leny
+    if numelx ~= numely
         error('MATLAB:bgcorr:dimagree','''x'' and ''y'' must be of same length.')
     end
     if isrow(x); x = x'; end
@@ -113,8 +113,8 @@ else
     validateattributes(p.Results.order,{'numeric'},{'vector','numel',2,'<',6},'bgcorr','order for 2d data')
     
     % check x,y,z
-    if (isvector(z) && lenx ~= lenz) || ...
-            (min(sizez) > 1 && (sizez(2) ~= lenx || sizez(1) ~= leny))
+    if (isvector(z) && numelx ~= numelz) || ...
+            (min(sizez) > 1 && (sizez(2) ~= numelx || sizez(1) ~= numely))
         error('MATLAB:bgcorr:dimagree','Dimensions of input matrices must agree.')
     end
     if isrow(x); x = x'; end
@@ -188,12 +188,12 @@ else
     % reshape data to vectors if we've been given a matrix
     if min(sizez) > 1
         z = reshape(z,sizez(1)*sizez(2),1);
-        x = reshape(x * ones(1,leny) ,sizez(1)*sizez(2),1);
-        y = reshape(ones(lenx,1) * y',sizez(1)*sizez(2),1);
+        x = reshape(x * ones(1,numely) ,sizez(1)*sizez(2),1);
+        y = reshape(ones(numelx,1) * y',sizez(1)*sizez(2),1);
     end
     % generate index mask for background region
-    indexmask = (((x >= bg(1,1) & x <= bg(2,1)) | (x >= bg(3,1) & x <= bg(4,1)))) & ...
-        (((y >= bg(1,2) & y <= bg(2,2)) | (y >= bg(3,2) & y <= bg(4,2))));
+    indexmask = (((x >= bg(1) & x <= bg(2)) | (x >= bg(3) & x <= bg(4)))) & ...
+        (((y >= bg(5) & y <= bg(6)) | (y >= bg(7) & y <= bg(8))));
     % normalise data
     xnorm = (x - xmin)/xrange;
     ynorm = (y - ymin)/yrange;
