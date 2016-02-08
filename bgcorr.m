@@ -8,9 +8,9 @@ function [dataout, bgout] = bgcorr(x,y,varargin)
 % Syntax
 % dataout = bgcorr(x,y)
 % dataout = bgcorr(x,y,z)
-% [dataout, bgout] = autophase(x,y,'order',<value>,'background',<value>,'method',<value>)
-% [dataout, bgout] = autophase(x,y,z,'order',<value>,'background',<value>,'method',<value>)
-% [dataout, bgout] = autophase(...,'method','fit','opts',<fitopts>)
+% [dataout, bgout] = bgcorr(x,y,'order',<value>,'background',<value>,'method',<value>)
+% [dataout, bgout] = bgcorr(x,y,z,'order',<value>,'background',<value>,'method',<value>)
+% [dataout, bgout] = bgcorr(...,'method','fit','opts',<fitopts>)
 %
 % Description
 % dataout = bgcorr(x,y) returns vector y background-corrected using a
@@ -23,8 +23,8 @@ function [dataout, bgout] = bgcorr(x,y,varargin)
 % formatted as z(n,m) = f(x(n), y(m)). Default order is [1 1], and default
 % background area is the outer 25% in both dimensions.
 %
-% [dataout, bgout] = autophase(x,y,'order',<value>,'background',<value>,'method',<value>)
-% [dataout, bgout] = autophase(x,y,z,'order',<value>,'background',<value>,'method',<value>)
+% [dataout, bgout] = bgcorr(x,y,'order',<value>,'background',<value>,'method',<value>)
+% [dataout, bgout] = bgcorr(x,y,z,'order',<value>,'background',<value>,'method',<value>)
 % return background corrected data and the fitted background itself, using
 % order, background and method specified by the user.
 % - 'order' must be scalar and <10 for 1d and two-element and <6 for 2d data.
@@ -42,7 +42,7 @@ function [dataout, bgout] = bgcorr(x,y,varargin)
 % It is unlikely that setting this to anything other than the default will
 % gain you anything
 %
-% [dataout, bgout] = autophase(...,'method','fit','opts',<fitopts>)
+% [dataout, bgout] = bgcorr(...,'method','fit','opts',<fitopts>)
 % Perform correction using the Curve-Fitting Toolbox's 'fit' function.
 % 'opts' is passed to the function. See 'help fit' for details.
 %
