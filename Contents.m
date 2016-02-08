@@ -8,14 +8,15 @@
 % 
 % Functions
 %   autophase  - Perform automatic 0th-order phase correction of a complex vector by
-%   bgcorr     - Calculate the double integral of a spectrum.
-%   db2level   - converts dB into level
-%   digitize   - 
-%   endoreff   - 
-%   fm         - 
-%   iof        - returns the index of the element in 'vector' closest to a given
-%   level2db   - converts level into dB
-%   localnoise - LocalNoise calculates the local noise level by looking for minima in local
+%   bgcorr     - Perform background correction
+%   db2level   - Convert dB into level
+%   level2db   - Convert level into dB
+%   digitize   - Get plotted data from an image file
+%   endoreff   - Calculate ENDOR efficiency
+%   fm         - Encode signal intensity as axis point density using frequency modulation
+%   iof        - Get the index of the element in 'vector' closest to a given value
+%   localnoise - Calculate the local noise level
 %   peakdet    - Detect peaks in a vector
-%   sinc       - calculate spectral shape of rectangular pulses, i.e. the sinc function. Real pulses aren't
-%   sym        - sym symmetrises data passed to it. By default, the data is symmetrised
+%   sinc       - Calculate spectral shape of rectangular pulses, i.e. the sinc function.
+%   sym        - Symmetrises data
+%   genpoly    - Generate 1d and 2d polynomial data with random coefficients and noise

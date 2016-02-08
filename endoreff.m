@@ -1,5 +1,5 @@
 function factor = endoreff(varargin)
-% calculate spectral shape of rectangular pulses, i.e. the sinc function. Real pulses aren't
+%ENDOREFF 
 % entirely rectangular and will have less high frequency content
 %
 % USAGE
