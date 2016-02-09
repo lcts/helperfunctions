@@ -59,7 +59,7 @@ if isnumeric(x) && min(size(x)) == 2
 end
 
 
-%% ARGUMENT PARSING
+%% ARGUMENT PARSING & VALIDATION
 % Perform basic validity checks and set defaults
 p = inputParser;
 p.addRequired('x', @(x)validateattributes(x,{'numeric'},{'vector','real'}));
@@ -71,14 +71,10 @@ p.addParameter('method','mldivide', @(x)ischar(validatestring(x,{'mldivide', 'po
 p.FunctionName = 'bgcorr';
 parse(p,x,y,varargin{:});
 
-% save data dimensions, because we need them often & need to restore them
-% later
+% save data dimensions, b/c we might need to restore them later
 z = p.Results.z;
 sizey = size(y);
 sizez = size(z);
-numelx  = numel(x);
-numely  = numel(y);
-numelz  = numel(z);
 % save min/max values so that we can restore them after normalisation
 xmin = min(x);
 xrange = max(x) - min(x);
@@ -95,7 +91,7 @@ if islogical(z)
     validateattributes(p.Results.order,{'numeric'},{'scalar','<',10},'bgcorr','order for 1d data')
    
     % check x,y dimensions
-    if numelx ~= numely
+    if numel(x) ~= numel(y)
         error('MATLAB:bgcorr:dimagree','''x'' and ''y'' must be of same length.')
     end
     % force columns
@@ -128,8 +124,8 @@ else
     validateattributes(p.Results.order,{'numeric'},{'vector','numel',2,'<',6},'bgcorr','order for 2d data')
     
     % check x,y,z dimensions
-    if (isvector(z) && numelx ~= numelz) || ...
-            (min(sizez) > 1 && (sizez(2) ~= numelx || sizez(1) ~= numely))
+    if (isvector(z) && numel(x) ~= numel(z)) || ...
+            (min(sizez) > 1 && (sizez(2) ~= numel(x) || sizez(1) ~= numel(y)))
         error('MATLAB:bgcorr:dimagree','Dimensions of input matrices must agree.')
     end
     % force columns
@@ -168,7 +164,9 @@ else
     end
 end
 
-%% PERFORM BACKGROUND CORRECTION
+%% BACKGROUND CORRECTION
+
+%% 1d correction
 if islogical(z)
     % generate index mask for background region
     indexmask = ((x >= bg(1) & x <= bg(2)) | (x >= bg(3) & x <= bg(4)));
@@ -201,13 +199,15 @@ if islogical(z)
     bgout = reshape(bgout,sizey(1),sizey(2));
     y = reshape(y,sizey(1),sizey(2));
     dataout = y - bgout;
+    
+%% 2d correction
 else
-    % 2D background correction
     % reshape data to vectors if we've been given a matrix
     if min(sizez) > 1
-        z = reshape(z,sizez(1)*sizez(2),1);
-        x = reshape(x * ones(1,numely) ,sizez(1)*sizez(2),1);
-        y = reshape(ones(numelx,1) * y',sizez(1)*sizez(2),1);
+        [x,y] = ndgrid(x,y);
+        x = reshape(x,numel(z),1);
+        y = reshape(y,numel(z),1);
+        z = reshape(z,numel(z),1);
     end
     % generate index mask for background region
     indexmask = (((x >= bg(1) & x <= bg(2)) | (x >= bg(3) & x <= bg(4)))) & ...
