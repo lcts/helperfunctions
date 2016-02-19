@@ -7,17 +7,23 @@
 % Some functions are specific to the needs of EPR spectroscopy
 % 
 % Functions
-%   autophase - Perform automatic 0th-order phase correction of a complex vector by
-%   bgcorr    - Perform background correction
+%
+% Convenience Functions
 %   db2level  - Convert dB into level
 %   level2db  - Convert level into dB
-%   digitize  - Get plotted data from an image file
-%   endoreff  - Calculate ENDOR efficiency
-%   fm        - Encode signal intensity as axis point density using frequency modulation
 %   iof       - Get the index of the element in 'vector' closest to a given value
-%   noiselvl  - Calculate the local noise level
-%   peakdet   - Detect peaks in a vector
-%   sinc      - Calculate spectral shape of rectangular pulses, i.e. the sinc function.
-%   sym       - Symmetrises data
 %   genpoly   - Generate 1d and 2d polynomial data with random coefficients and noise
-%   cpgm      - Extract decay data from Carr-Purcell Gill-Meiboom measurements
+%
+% Data treatment and analysis functions
+%   autophase - Perform automatic 0th-order phase correction of complex data
+%   bgcorr    - Perform background correction
+%   digitize  - Get plotted data from an image file
+%   fm        - Encode signal intensity as axis point density using frequency modulation
+%   noiselvl  - Calculate noise level and noise-suppressed pseudo-derivative
+%   peakdet   - Detect peaks in a vector
+%   sym       - Symmetrise data
+%
+% EPR-specific functions
+%   endoreff    - Calculate ENDOR efficiency
+%   sinc        - Calculate spectral shape of rectangular pulses, i.e. the sinc function.
+%   cpgm        - Extract decay data from Carr-Purcell Gill-Meiboom measurements
