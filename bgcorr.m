@@ -8,8 +8,8 @@ function [dataout, bgout] = bgcorr(x,y,varargin)
 % Syntax
 % dataout = bgcorr(x,y)
 % dataout = bgcorr(x,y,z)
-% [dataout, bgout] = bgcorr(x,y,'order',<value>,'background',<value>,'method',<value>)
-% [dataout, bgout] = bgcorr(x,y,z,'order',<value>,'background',<value>,'method',<value>)
+% [dataout, bgout] = bgcorr(x,y,'order',<value>,'limits',<value>,'method',<value>)
+% [dataout, bgout] = bgcorr(x,y,z,'order',<value>,'limits',<value>,'method',<value>)
 % [dataout, bgout] = bgcorr(...,'method','fit','opts',<fitopts>)
 %
 % Description
@@ -23,13 +23,13 @@ function [dataout, bgout] = bgcorr(x,y,varargin)
 % formatted as z(n,m) = f(x(n), y(m)). Default order is [1 1], and default
 % background area is the outer 25% in both dimensions.
 %
-% [dataout, bgout] = bgcorr(x,y,'order',<value>,'background',<value>,'method',<value>)
-% [dataout, bgout] = bgcorr(x,y,z,'order',<value>,'background',<value>,'method',<value>)
+% [dataout, bgout] = bgcorr(x,y,'order',<value>,'limits',<value>,'method',<value>)
+% [dataout, bgout] = bgcorr(x,y,z,'order',<value>,'limits',<value>,'method',<value>)
 % return background corrected data and the fitted background itself, using
-% order, background and method specified by the user.
+% order, limits and method specified by the user.
 % - 'order' must be scalar and <10 for 1d and two-element and <6 for 2d data.
 %    The elements denote polynomial order in x and y direction, respectively.
-% - 'background' is formatted as [lowstart lowstop highstart highstop] for 1d
+% - 'limits' is formatted as [lowstart lowstop highstart highstop] for 1d
 %    and [xlstart xlstop xhstart xhstop ylstart ylstop yhstart yhstop] for 2d
 % - 'method' can be one of 'mldivide' (default), 'polyfit' (only for 1d) and 'fit'
 %   - 'mldivide' uses the Matlab-internal mldivide function and requires
@@ -66,7 +66,7 @@ p.addRequired('x', @(x)validateattributes(x,{'numeric'},{'vector','real'}));
 p.addRequired('y', @(x)validateattributes(x,{'numeric'},{'vector','real'}));
 p.addOptional('z', false, @(x)validateattributes(x,{'numeric'},{'2d','real'}));
 p.addParameter('order', 1, @(x)validateattributes(x,{'numeric'},{'nonnegative','integer','vector'}));
-p.addParameter('background',false, @(x)validateattributes(x,{'numeric'},{'vector'}));
+p.addParameter('limits',false, @(x)validateattributes(x,{'numeric'},{'vector'}));
 p.addParameter('method','mldivide', @(x)ischar(validatestring(x,{'mldivide', 'polyfit', 'fit'})));
 p.FunctionName = 'bgcorr';
 parse(p,x,y,varargin{:});
@@ -96,10 +96,10 @@ if islogical(z)
     end
     % force columns
     if isrow(x); x = x'; end
-    if isrow(y); x = y'; end
+    if isrow(y); y = y'; end
     
     % check background
-    if ~p.Results.background
+    if ~p.Results.limits
         % use the default '25% from start/stop' as background.
         bg(1) = xmin;
         bg(2) = xmin + xrange/4;
@@ -107,8 +107,8 @@ if islogical(z)
         bg(4) = xmin + xrange;
     else
         % error if background does not have 4 increasing elements
-        validateattributes(p.Results.background,{'numeric'},{'vector','increasing','numel',4},'bgcorr','background for 1d data')
-        bg = p.Results.background;
+        validateattributes(p.Results.limits,{'numeric'},{'vector','increasing','numel',4},'bgcorr','limits for 1d data')
+        bg = p.Results.limits;
     end
     
     % check method
@@ -130,11 +130,11 @@ else
     end
     % force columns
     if isrow(x); x = x'; end
-    if isrow(y); x = y'; end
-    if isrow(z); x = z'; end
+    if isrow(y); y = y'; end
+    if isrow(z); z = z'; end
         
     % check background
-    if ~p.Results.background
+    if ~p.Results.limits
         % use the default '25% from start/stop' as background.
         bg(1) = xmin;
         bg(2) = xmin + xrange/4;
@@ -147,10 +147,10 @@ else
     else
         % error if background does not have 8 elements or if 1-4 (x) / 5-8
         % (y) are not increasing
-        validateattributes(p.Results.background,{'numeric'},{'vector','numel',8},'bgcorr','background for 2d data')
-        validateattributes(p.Results.background(1:4),{'numeric'},{'vector','increasing'},'bgcorr','elements 1:4 (x) of background')
-        validateattributes(p.Results.background(5:8),{'numeric'},{'vector','increasing'},'bgcorr','elements 5:8 (y) of background')
-        bg = p.Results.background;
+        validateattributes(p.Results.limits,{'numeric'},{'vector','numel',8},'bgcorr','limits for 2d data')
+        validateattributes(p.Results.limits(1:4),{'numeric'},{'vector','increasing'},'bgcorr','elements 1:4 (x) of ''limits''')
+        validateattributes(p.Results.limits(5:8),{'numeric'},{'vector','increasing'},'bgcorr','elements 5:8 (y) of ''limits''')
+        bg = p.Results.limits;
     end
     
     % check method
@@ -186,10 +186,9 @@ if islogical(z)
             % generate matrix for fit
             Abg = zeros(length(x(indexmask)),p.Results.order+1);
             A   = zeros(length(x),p.Results.order+1);
-            % go from highest order down to match polyval function
-            for ii = p.Results.order:0
-                Abg(:,ii) = xnorm(indexmask).^ii;
-                A(:,ii) = xnorm.^ii;
+            for ii = 0:p.Results.order
+                Abg(:,ii+1) = xnorm(indexmask).^ii;
+                A(:,ii+1) = xnorm.^ii;
             end
             % solve the system for y
             result = Abg\ynorm(indexmask);
