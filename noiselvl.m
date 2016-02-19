@@ -9,7 +9,7 @@ function [noise, noiserms, localstd] = noiselvl(data, varargin)
 % smoothing  - the area used for local variance, in +-points. Defaults to +-2.5% of the data.
 %
 % LocalNoise returns the following:
-% noiselvl   - the peak noise lvl
+% noise      - the peak noise lvl
 % noiserms   - the rms noise lvl
 % localstd   - a vector containing the local standard deviation
 % 
