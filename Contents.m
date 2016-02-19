@@ -1,5 +1,5 @@
 % Data Evaluation Toolbox
-% Version 1.2.1 19-Feb-2016
+% Version 1.2.2 19-Feb-2016
 %
 % A collection of functions that automate tasks often needed during data
 % analysis/evaluation, like background correction etc.
